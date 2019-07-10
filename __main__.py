@@ -4,7 +4,13 @@ from .scripts import data_download_and_preprocess, negative_avg_log_error, accur
 import os
 
 # =======================================================================================================================
+from .scripts.subwords import Subwords
 
+
+print("Loading Subwords..")		
+subwords = Subwords(10000,'1.1')
+print("Loading Subwords done.")	
+exit(1)
 
 import argparse
 import sys
