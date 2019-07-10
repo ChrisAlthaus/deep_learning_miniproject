@@ -16,7 +16,7 @@ class BatchGenerator(Sequence):
         base_dir = os.path.join(os.path.dirname(__file__), os.pardir, 'data')
 
         self.vectors = MagnitudeVectors(emdim).load_vectors()
-        self.subwords = Subwords(10000)
+        self.subwords = Subwords()
         self.squad_version = squad_version
 
         self.max_passage_length = max_passage_length
