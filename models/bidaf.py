@@ -6,13 +6,17 @@ from ..layers import Highway, Similarity, C2QAttention, Q2CAttention, MergedCont
 from ..scripts import negative_avg_log_error, accuracy, tokenize, MagnitudeVectors, get_best_span, \
     get_word_char_loc_mapping
 from ..scripts import ModelMGPU
+from ..scripts.subwords import Subwords
 import os
 
+
+VOCAB_SIZE = 1000
 
 class BidirectionalAttentionFlow():
 
     def __init__(self, emdim, max_passage_length=None, max_query_length=None, num_highway_layers=2, num_decoders=1,
                  encoder_dropout=0, decoder_dropout=0):
+        emdim += VOCAB_SIZE
         self.emdim = emdim
         self.max_passage_length = max_passage_length
         self.max_query_length = max_query_length
@@ -166,11 +170,15 @@ class BidirectionalAttentionFlow():
         else:
             raise TypeError("Input 'question' must be either a 'string' or 'list of strings'")
 
-        vectors = MagnitudeVectors(self.emdim).load_vectors()
+        vectors = MagnitudeVectors(self.emdim - VOCAB_SIZE).load_vectors()
         context_batch = vectors.query(contexts, self.max_passage_length)
         question_batch = vectors.query(questions, self.max_query_length)
 
-        y = self.model.predict([context_batch, question_batch])
+        subwords = Subwords(VOCAB_SIZE)
+        full_context_batch = subwords.append_batch(context_batch, contexts)
+        full_question_batch = subwords.append_batch(question_batch, questions)
+
+        y = self.model.predict([full_context_batch, full_question_batch])
         y_pred_start = y[:, 0, :]
         y_pred_end = y[:, 1, :]
 

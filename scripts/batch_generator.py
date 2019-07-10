@@ -2,6 +2,7 @@ from keras.utils import Sequence
 import os
 import numpy as np
 from .magnitude import MagnitudeVectors
+from .subwords import Subwords
 
 
 class BatchGenerator(Sequence):
@@ -15,6 +16,7 @@ class BatchGenerator(Sequence):
         base_dir = os.path.join(os.path.dirname(__file__), os.pardir, 'data')
 
         self.vectors = MagnitudeVectors(emdim).load_vectors()
+        self.subwords = Subwords(10000)
         self.squad_version = squad_version
 
         self.max_passage_length = max_passage_length
@@ -87,12 +89,15 @@ class BatchGenerator(Sequence):
 
         context_batch = self.vectors.query(contexts, pad_to_length=self.max_passage_length)
         question_batch = self.vectors.query(questions, pad_to_length=self.max_query_length)
+        full_context_batch = self.subwords.append_batch(context_batch, contexts)
+        full_question_batch = self.subwords.append_batch(question_batch, questions)
+
         if self.max_passage_length is not None:
             span_batch = np.expand_dims(np.array(answer_spans, dtype='float32'), axis=1).clip(0,
                                                                                               self.max_passage_length - 1)
         else:
             span_batch = np.expand_dims(np.array(answer_spans, dtype='float32'), axis=1)
-        return [context_batch, question_batch], [span_batch]
+        return [full_context_batch, full_question_batch], [span_batch]
 
     def on_epoch_end(self):
         if self.shuffle:

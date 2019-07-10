@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import sentencepiece as spm
 from tqdm import tqdm
 from nltk import tokenize
@@ -6,7 +7,7 @@ import json
 
 class Subwords():
 
-	def __init__(self, emdim, squad_version):
+	def __init__(self, emdim, do_lowercase = False, squad_version = "1.1"):
 		
 		base_dir = os.path.relpath(os.path.join(os.path.dirname(__file__), os.pardir, 'data', 'sentencepiece'))
 		data_dir = os.path.relpath(os.path.join(os.path.dirname(__file__), os.pardir, 'data'))
@@ -23,20 +24,19 @@ class Subwords():
 			if not os.path.exists(base_dir):
 				os.makedirs(base_dir)
 			
-			context_file = self.getContextData(train_file,base_dir)
+			context_file = self.getContextData(train_file, base_dir)
 			
-			#spm.SentencePieceTrainer.Train('--input={} --model_prefix={} --vocab_size={} --character_coverage=1.0 --model_type=bpe'.format(
-			#		context_file, os.path.join(base_dir,'subword'),emdim))
-			#spm.SentencePieceTrainer.Train('--input={} --model_prefix={} --vocab_size={} --character_coverage=1.0 --model_type=bpe'.format(
-			#		"../test.txt", 'subword',emdim))
-			print("context=",context_file.replace(" ", "/ "))
-			spm.SentencePieceTrainer.Train('--input={} --model_prefix={} --vocab_size={} --character_coverage=1.0 --model_type=bpe'.format(
-					context_file, 'subword',emdim))
+			if do_lowercase:
+				normalization = "nmt_nfkc_cf"
+			else:
+				normalization = "nmt_nfkc"
+
+			# --character_coverage=1.0
+			spm.SentencePieceTrainer.Train('--input={} --model_prefix={} --vocab_size={} --model_type=bpe --normalization_rule_name={}'.format(
+					context_file, os.path.join(base_dir,'subword'), emdim, normalization))
 			model = sp.Load(os.path.join(base_dir,'subword.model'))
-			
-		
-		print(sp.EncodeAsPieces("This is a test"))
-		self.vectors = None
+
+		self.vectors = sp
 	
 	def getContextData(self,train_file, dest_path):
 		dataset = None
@@ -67,8 +67,17 @@ class Subwords():
 		return file_name
 		
 
-	def load_vectors(self):
-		return self.vectors
+	def append_batch(self, batch, input):
+		new_batch = np.zeros(shape=(batch.shape[:-1] + (batch.shape[-1] + len(self.vectors),)))
+		for i in range(len(input)):
+		    for j in range(len(input[i])):
+		        ids = self.vectors.EncodeAsIds(input[i][j])
+		        encoded_ids = np.zeros(shape=len(self.vectors), dtype='float32')
+		        for id in ids:
+		            encoded_ids[id] = 1 / len(ids)
+		        new_batch[i][j] = np.concatenate((batch[i][j], encoded_ids))
+
+		return batch
 
 		
 		
