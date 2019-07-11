@@ -7,6 +7,7 @@ import nltk
 import numpy as np
 from tqdm import tqdm
 from six.moves.urllib.request import urlretrieve
+from .subwords import Subwords
 
 random.seed(42)
 np.random.seed(42)
@@ -302,7 +303,10 @@ def data_download_and_preprocess(squad_version=1.1, do_lowercase=True):
         print("Preprocessing training data")
         preprocess_and_write(train_data, 'train', data_dir, squad_version, do_lowercase=do_lowercase)
     print("Train data preprocessed!")
-
+    
+    #Preprocess contexts for subword vocabulary
+    subwords_init = Subwords()
+    
     # download dev set
     maybe_download(SQUAD_BASE_URL, dev_filename, data_dir)
 

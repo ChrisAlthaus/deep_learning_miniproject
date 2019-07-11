@@ -91,6 +91,9 @@ class BatchGenerator(Sequence):
         question_batch = self.vectors.query(questions, pad_to_length=self.max_query_length)
         full_context_batch = self.subwords.append_batch(context_batch, contexts)
         full_question_batch = self.subwords.append_batch(question_batch, questions)
+        
+        #print("Full context batch shape: ",full_context_batch.shape)
+        #print("Full question batch shape: ",full_question_batch.shape)
 
         if self.max_passage_length is not None:
             span_batch = np.expand_dims(np.array(answer_spans, dtype='float32'), axis=1).clip(0,

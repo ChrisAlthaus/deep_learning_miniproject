@@ -6,9 +6,19 @@ from nltk import tokenize
 import json
 
 class Subwords():
-	VOCAB_SIZE = 126
+	"""
+		Subword implementation supporting BPE algorith. 
+		Also containing preprocessing and training vector utilities.
+			
+		Attributes: VOCAB_SIZE  number of subwords in the vocab
+	"""
+	
+	VOCAB_SIZE = 200
 
-	def __init__(self, do_lowercase = False, squad_version = "1.1"):
+	def __init__(self, do_lowercase = True, squad_version = "1.1"):
+		"""
+		Loads context dataset and trains the subword model.
+		"""
 		
 		base_dir = os.path.relpath(os.path.join(os.path.dirname(__file__), os.pardir, 'data', 'sentencepiece'))
 		data_dir = os.path.relpath(os.path.join(os.path.dirname(__file__), os.pardir, 'data'))
@@ -33,13 +43,23 @@ class Subwords():
 				normalization = "nmt_nfkc"
 
 			# --character_coverage=1.0
+			print("Train Vocab with BPE...")
 			spm.SentencePieceTrainer.Train('--input={} --model_prefix={} --vocab_size={} --model_type=bpe --normalization_rule_name={}'.format(
 					context_file, os.path.join(base_dir,'subword'), self.VOCAB_SIZE, normalization))
+			print("Train Vocab with BPE done.")
 			model = sp.Load(os.path.join(base_dir,'subword.model'))
 
 		self.vectors = sp
 	
 	def getContextData(self,train_file, dest_path):
+		"""
+		Returns the context data of the specified data file. 
+		The input data is split by sentences.
+			
+		:param: train_file 	path to json dataset file
+				dest_path	path for saving the processed dataset
+		"""
+		
 		dataset = None
 		
 		with open(train_file) as data_file:
@@ -69,6 +89,14 @@ class Subwords():
 		
 
 	def append_batch(self, batch, input):
+		"""
+		Computes normalized vector representation of subwords. 
+		Appends them to the respective input embedding batch. 
+		
+		:param: batch	input embedding batch
+				input	list of tokensized words 
+		"""
+		
 		new_batch = np.zeros(shape=(batch.shape[:-1] + (batch.shape[-1] + len(self.vectors),)), dtype='float32')
 		for i in range(len(input)):
 		    for j in range(len(input[i])):
